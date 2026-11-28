@@ -51,6 +51,14 @@ func (s *Studio) SaveDraft(id, path, content, revision, branch string) error {
 func (s *Studio) Create(id, path string, directory bool) error {
 	return s.engine.Create(id, path, directory)
 }
+func (s *Studio) Copy(id, from, to string) error { return s.engine.Copy(id, from, to) }
+func (s *Studio) ImportImage(ctx context.Context, id, article string) (workspace.ImageAsset, error) {
+	paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: mygo.CallerWindow(ctx), Title: "选择图片（PNG / JPEG / GIF / WebP）"})
+	if err != nil || len(paths) == 0 {
+		return workspace.ImageAsset{}, err
+	}
+	return s.engine.ImportImage(id, article, paths[0])
+}
 func (s *Studio) Move(id, from, to string) error { return s.engine.Move(id, from, to) }
 func (s *Studio) Delete(ctx context.Context, id, path string) error {
 	result, err := mygo.Dialog.Message(mygo.MessageOptions{Parent: mygo.CallerWindow(ctx), Type: mygo.MessageWarning, Message: "移到废纸篓？", Detail: path, Buttons: []string{"取消", "移到废纸篓"}, CancelButton: 0, DefaultButton: 0, DestructiveButtons: []int{1}})

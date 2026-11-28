@@ -38,6 +38,11 @@ export interface File {
   draftConflict: boolean;
 }
 
+export interface ImageAsset {
+  path: string;
+  markdown: string;
+}
+
 export interface Match {
   path: string;
   line: number;
@@ -90,9 +95,11 @@ export const Studio = {
   clone: bind<[string, string, string], Project>("Studio.Clone", (url: string, parent: string, name: string) => [url, parent, name]),
   closeReady: bind<[], void>("Studio.CloseReady", () => []),
   commit: bind<[string, string, string, boolean, string], CommitResult>("Studio.Commit", (id: string, review: string, message: string, push: boolean, remote: string) => [id, review, message, push, remote]),
+  copy: bind<[string, string, string], void>("Studio.Copy", (id: string, from: string, to: string) => [id, from, to]),
   create: bind<[string, string, boolean], void>("Studio.Create", (id: string, path: string, directory: boolean) => [id, path, directory]),
   delete: bind<[string, string], void>("Studio.Delete", (id: string, path: string) => [id, path]),
   import: bind<[string, string, string], void>("Studio.Import", (id: string, folder: string, target: string) => [id, folder, target]),
+  importImage: bind<[string, string], ImageAsset>("Studio.ImportImage", (id: string, article: string) => [id, article]),
   initGit: bind<[string], Project>("Studio.InitGit", (id: string) => [id]),
   list: bind<[string, string, boolean], Entry[]>("Studio.List", (id: string, dir: string, hidden: boolean) => [id, dir, hidden]),
   move: bind<[string, string, string], void>("Studio.Move", (id: string, from: string, to: string) => [id, from, to]),

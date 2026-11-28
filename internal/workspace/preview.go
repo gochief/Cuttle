@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -206,6 +207,8 @@ func (p *Previewer) Render(ctx context.Context, project Project, rel, content, k
 				body = body[at+8:]
 			}
 		}
+		// Resolve the Jekyll asset syntax emitted by the image importer in fast previews too.
+		body = regexp.MustCompile(`\{\{\s*'(/[^']+)'\s*\|\s*relative_url\s*\}\}`).ReplaceAllString(body, "$1")
 		if err = md.Convert([]byte(body), &rendered); err != nil {
 			return PreviewResult{}, err
 		}

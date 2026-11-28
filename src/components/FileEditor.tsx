@@ -1,3 +1,5 @@
+import { useRef, useEffect } from "react";
+import type { ImageAsset } from "../mygo";
 import CodeMirror from "@uiw/react-codemirror";
 import { markdown } from "@codemirror/lang-markdown";
 import { EditorView } from "@codemirror/view";
@@ -28,6 +30,7 @@ type Props = {
   onEdit: (text: string) => void;
   onError: (error: string) => void;
   onReplace: () => void;
+  onImportImage: () => Promise<ImageAsset | undefined>;
 };
 export default function FileEditor({
   file,
@@ -37,7 +40,29 @@ export default function FileEditor({
   onEdit,
   onError,
   onReplace,
+  onImportImage,
 }: Props) {
+  const editor = useRef<EditorView | null>(null);
+  useEffect(
+    () => () => {
+      editor.current = null;
+    },
+    [],
+  );
+  async function insertImage() {
+    const view = editor.current;
+    if (!view) return;
+    const selection = view.state.selection.main;
+    const asset = await onImportImage();
+    if (!asset?.path || view !== editor.current) return;
+    const insert = "\n" + asset.markdown + "\n";
+    view.dispatch({
+      changes: { from: selection.from, to: selection.to, insert },
+      selection: { anchor: selection.from + insert.length },
+      scrollIntoView: true,
+    });
+    view.focus();
+  }
   const syntax = useEditorSyntax(file.path);
   const isMarkdown = /\.(md|markdown)$/i.test(file.path);
   const { doc, body } = parseFrontmatter(file.text);
@@ -52,6 +77,18 @@ export default function FileEditor({
   const basicExtensions = [editorTheme, EditorView.lineWrapping];
   return (
     <div className="editor">
+      {isMarkdown && !file.binary && (
+        <div className="article-assets">
+          <button
+            onClick={() =>
+              insertImage().catch((error) => onError(String(error)))
+            }
+          >
+            ＋ 插入图片
+          </button>
+          <small>导入到 assets/images · 插入当前光标位置</small>
+        </div>
+      )}
       {file.draftConflict && (
         <details className="draft-comparison">
           <summary>恢复的草稿与磁盘文件不同，点击查看磁盘版本</summary>
@@ -116,6 +153,10 @@ export default function FileEditor({
             ))}
           </div>
           <CodeMirror
+            key={file.path + language + String(form)}
+            onCreateEditor={(view) => {
+              editor.current = view;
+            }}
             value={
               language === "en" ? String(doc.get("content_en") || "") : body
             }
@@ -130,6 +171,10 @@ export default function FileEditor({
         </>
       ) : (
         <CodeMirror
+          key={file.path + String(form)}
+          onCreateEditor={(view) => {
+            editor.current = view;
+          }}
           value={file.text}
           height="100%"
           extensions={[

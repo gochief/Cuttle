@@ -12,6 +12,7 @@ type Props = {
   stash: boolean;
   setStash: (value: boolean) => void;
   busy: string;
+  onCreateChild: (directory: boolean) => void;
   onClose: () => void;
   onSubmit: () => void;
   onDialog: (kind: string) => void;
@@ -32,6 +33,7 @@ export function WorkspaceDialogs({
   stash,
   setStash,
   busy,
+  onCreateChild,
   onClose,
   onSubmit,
   onDialog,
@@ -123,7 +125,54 @@ export function WorkspaceDialogs({
       {modal === "file" && (
         <>
           <p>{values.path}</p>
-          {field("to", "重命名 / 移动到")}
+          <div className="file-operation-switch">
+            <button
+              type="button"
+              className={values.action !== "copy" ? "on" : ""}
+              onClick={() =>
+                setValues((v) => ({ ...v, action: "move", to: v.path }))
+              }
+            >
+              移动 / 重命名
+            </button>
+            <button
+              type="button"
+              className={values.action === "copy" ? "on" : ""}
+              onClick={() =>
+                setValues((v) => {
+                  const at = v.path.lastIndexOf(".");
+                  const isFile =
+                    v.directory !== "true" && at > v.path.lastIndexOf("/");
+                  return {
+                    ...v,
+                    action: "copy",
+                    to: isFile
+                      ? v.path.slice(0, at) + "-copy" + v.path.slice(at)
+                      : v.path + "-copy",
+                  };
+                })
+              }
+            >
+              复制
+            </button>
+          </div>
+          {field(
+            "to",
+            values.action === "copy"
+              ? "复制到（项目内完整路径）"
+              : "移动到（项目内完整路径）",
+          )}
+          <p className="muted">
+            目标文件或目录已存在时不会覆盖。复制目录包含全部子文件。
+          </p>
+          <div className="actions">
+            <button type="button" onClick={() => onCreateChild(false)}>
+              ＋ 新建文件
+            </button>
+            <button type="button" onClick={() => onCreateChild(true)}>
+              ＋ 新建目录
+            </button>
+          </div>
           <div className="actions">
             <button type="button" onClick={onReveal}>
               在系统中显示
@@ -248,7 +297,7 @@ export function WorkspaceDialogs({
           {busy ||
             (
               {
-                file: "确认移动",
+                file: values.action === "copy" ? "确认复制" : "确认移动",
                 commit: push ? "提交并推送" : "提交",
                 branch: "切换分支",
               } as Record<string, string>

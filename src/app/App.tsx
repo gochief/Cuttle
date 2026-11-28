@@ -46,7 +46,10 @@ export default function App() {
   const refs = useRef({ project, buffers, busy });
   refs.current = { project, buffers, busy };
   const dirty = (b: Buffer) => b.text !== b.content;
-  async function run(label: string, fn: () => Promise<unknown>) {
+  async function run<T>(
+    label: string,
+    fn: () => Promise<T>,
+  ): Promise<T | undefined> {
     setBusy(label);
     setError("");
     try {
@@ -58,11 +61,25 @@ export default function App() {
       setBusy("");
     }
   }
-  async function refresh(p = project) {
+  async function refresh(p = project, reveal = "") {
     if (!p) return;
     setStatus(await Studio.status(p.id));
-    setTree({ "": await Studio.list(p.id, "", hidden) });
-    setExpanded([]);
+    const dirs = new Set(p.id === project?.id ? expanded : []);
+    const parts = reveal.split("/");
+    for (let i = 1; i < parts.length; i++)
+      dirs.add(parts.slice(0, i).join("/"));
+    const next: Record<string, Entry[]> = {
+      "": await Studio.list(p.id, "", hidden),
+    };
+    const opened: string[] = [];
+    for (const dir of dirs) {
+      try {
+        next[dir] = await Studio.list(p.id, dir, hidden);
+        opened.push(dir);
+      } catch {}
+    }
+    setTree(next);
+    setExpanded(opened);
   }
   async function drafts() {
     const { project: p, buffers: bs } = refs.current;
@@ -226,6 +243,37 @@ export default function App() {
     setTree((items) => ({ ...items, [entry.path]: rows }));
     setExpanded((items) => [...items, entry.path]);
   }
+  async function moveFile(from: string, to: string) {
+    if (!project) return;
+    if (from === to) {
+      setNotice("位置未变化");
+      return;
+    }
+    const affected = buffers.filter(
+      (file) => file.path === from || file.path.startsWith(from + "/"),
+    );
+    await saveAll();
+    await Studio.move(project.id, from, to);
+    const mapPath = (path: string) =>
+      path === from || path.startsWith(from + "/")
+        ? to + path.slice(from.length)
+        : path;
+    const moved = await Promise.all(
+      affected.map((file) => Studio.read(project.id, mapPath(file.path))),
+    );
+    setBuffers((items) =>
+      items.map((file) => {
+        const next = moved.find((item) => item.path === mapPath(file.path));
+        return next ? { ...next, text: next.content } : file;
+      }),
+    );
+    setActive(mapPath);
+    setFolder(mapPath);
+    setSelected([]);
+    setPreview("");
+    await refresh(project, to);
+    setNotice("已移动到 " + to);
+  }
   const isMarkdown = current && /\.(md|markdown)$/i.test(current.path);
   function frontmatter() {
     return parseFrontmatter(current?.text || "");
@@ -253,20 +301,17 @@ export default function App() {
         const text = `---\nlayout: post\ntitle: ${JSON.stringify(values.title || "新文章")}\ndate: ${values.date} 12:00:00 +0800\ncategories: []\nsummary: ""\ntitle_en: ""\nsummary_en: ""\ncontent_en: |\n  \n---\n\n开始写作。\n`;
         await Studio.save(p.id, path, text, f.revision, f.branch);
       }
-      await refresh();
+      await refresh(p, path);
       if (values.directory !== "true") await read(path);
+      else setFolder(path);
     }
     if (modal === "file") {
-      await saveAll();
-      await Studio.move(p.id, values.path, values.to);
-      setBuffers((bs) =>
-        bs.filter(
-          (b) =>
-            b.path !== values.path && !b.path.startsWith(values.path + "/"),
-        ),
-      );
-      setActive("");
-      await refresh();
+      if (values.action === "copy") {
+        await saveAll();
+        await Studio.copy(p.id, values.path, values.to);
+        await refresh(p, values.to);
+        setNotice("已复制到 " + values.to);
+      } else await moveFile(values.path, values.to);
     }
     if (modal === "branch") {
       await saveAll();
@@ -479,12 +524,21 @@ export default function App() {
                     tree={tree}
                     expanded={expanded}
                     active={active}
+                    onMove={(from, dir) =>
+                      run("移动文件", () =>
+                        moveFile(
+                          from,
+                          (dir ? dir + "/" : "") + from.split("/").pop(),
+                        ),
+                      )
+                    }
                     onOpen={(entry) => run("打开文件", () => openEntry(entry))}
                     onMenu={(entry) =>
                       dialog("file", {
                         path: entry.path,
                         directory: String(entry.directory),
                         to: entry.path,
+                        action: "move",
                       })
                     }
                   />
@@ -698,6 +752,19 @@ export default function App() {
                         file={current}
                         form={form}
                         language={language}
+                        onImportImage={() =>
+                          run("导入并插入图片", async () => {
+                            const asset = await Studio.importImage(
+                              project.id,
+                              current.path,
+                            );
+                            if (asset.path) {
+                              await refresh(project, asset.path);
+                              setNotice("图片已导入，保存文章后可一并提交");
+                            }
+                            return asset;
+                          })
+                        }
                         onLanguage={setLanguage}
                         onEdit={edit}
                         onError={setError}
@@ -768,6 +835,16 @@ export default function App() {
           stash={stash}
           setStash={setStash}
           busy={busy}
+          onCreateChild={(directory) => {
+            const base =
+              values.directory === "true"
+                ? values.path
+                : values.path.split("/").slice(0, -1).join("/");
+            dialog("create", {
+              path: base ? base + "/" : "",
+              directory: String(directory),
+            });
+          }}
           onClose={() => setModal("")}
           onSubmit={() => run("处理中", submitModal)}
           onDialog={dialog}
@@ -799,7 +876,12 @@ export default function App() {
                     !file.path.startsWith(values.path + "/"),
                 ),
               );
-              setActive("");
+              const removed = (path: string) =>
+                path === values.path || path.startsWith(values.path + "/");
+              setActive((path) => (removed(path) ? "" : path));
+              setFolder((path) => (removed(path) ? "" : path));
+              setSelected((paths) => paths.filter((path) => !removed(path)));
+              setPreview("");
               setModal("");
               await refresh();
             })

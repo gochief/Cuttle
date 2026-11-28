@@ -31,18 +31,18 @@ Choose a folder to get started. Manage files in ordinary directories, work with 
 
 ## Features
 
-| Feature            | Capabilities                                                                                              |
-| ------------------ | --------------------------------------------------------------------------------------------------------- |
-| Projects           | Open local folders, switch recent projects, clone SSH / HTTPS / local repositories                        |
-| Files              | Create, rename, move, import, replace, and move files or directories to Trash                             |
-| Editing and search | Multiple tabs, syntax highlighting for common languages, filename and text search, hidden file visibility |
-| Binary files       | View images, replace files, open files in system applications                                             |
-| Markdown           | Source editing, rendered previews, automatic local drafts                                                 |
-| Jekyll blogs       | Create posts, edit Chinese/English titles, summaries, and body text, build previews with the blog theme   |
-| Git branches       | Create and switch local branches, create remote tracking branches, stash and restore changes              |
-| Remotes            | Add, edit, or remove remotes; configure separate fetch and push URLs                                      |
-| Git sync           | Fetch, fast-forward-only pull, push the current branch                                                    |
-| Commit review      | Select files, review diffs, write a commit message, optionally push after committing                      |
+| Feature            | Capabilities                                                                                                 |
+| ------------------ | ------------------------------------------------------------------------------------------------------------ |
+| Projects           | Open local folders, switch recent projects, clone SSH / HTTPS / local repositories                           |
+| Files              | Create, copy, rename, move, import, replace, and move files or directories to Trash; drag items into folders |
+| Editing and search | Multiple tabs, syntax highlighting for common languages, filename and text search, hidden file visibility    |
+| Binary files       | View images, replace files, open files in system applications                                                |
+| Markdown           | Source editing, rendered previews, image insertion at the cursor, automatic local drafts                     |
+| Jekyll blogs       | Create posts, edit Chinese/English titles, summaries, and body text, build previews with the blog theme      |
+| Git branches       | Create and switch local branches, create remote tracking branches, stash and restore changes                 |
+| Remotes            | Add, edit, or remove remotes; configure separate fetch and push URLs                                         |
+| Git sync           | Fetch, fast-forward-only pull, push the current branch                                                       |
+| Commit review      | Select files, review diffs, write a commit message, optionally push after committing                         |
 
 ```mermaid
 flowchart LR
@@ -104,7 +104,8 @@ Editing a URL in **远程仓库 (Remotes)** updates the current project's Git re
 ### Edit files
 
 - Open files from the tree on the left. Keep multiple files open in tabs.
-- Select a directory to set the destination for new files. Use the `⋯` menu on a row to rename, move, replace, or manage that item.
+- Select a directory to set the destination for new files. Right-click an item or use its `⋯` menu to create files/directories, copy, move, rename, or move it to Trash.
+- Drag a file or directory onto a target folder, or onto the project-root drop area, to move it. Copying directories includes their children; existing destinations are never overwritten. Symlinks and nested Git metadata cannot be copied.
 - Press `⌘S` / `Ctrl+S` to save all edits.
 - Use the search panel to find filenames or text content.
 - Enable **显示隐藏文件与依赖目录 (Show hidden files and dependency directories)** to browse configuration files and dependencies.
@@ -119,6 +120,8 @@ When Cuttle detects `_config.yml` at the project root, it enables Jekyll writing
 2. Edit the full source, or switch to **文章表单 (Post form)** to enter Chinese / English content.
 3. Click **Markdown 预览 (Markdown preview)** for rendered Markdown, or **真实博客预览 (Blog preview)** to build a page using the project's Jekyll templates.
 4. Save the file when ready, then review and commit it in the Git panel.
+
+Click **插入图片 (Insert image)** in the editor to select a PNG, JPEG, GIF, or WebP image (up to 20 MB). Cuttle saves it with a unique name under `assets/images` and inserts a Markdown reference at the cursor, in source mode or either language’s body editor. Save the article, then select both the article and image files in the Git panel. Jekyll references use `relative_url` so site base paths work in previews and published pages.
 
 The bilingual form uses `title`, `summary`, the Markdown body, and the `title_en`, `summary_en`, and `content_en` fields. Other YAML fields are preserved. Your blog theme must support these bilingual fields; Cuttle does not modify the theme automatically.
 
@@ -162,6 +165,7 @@ Cuttle/
 ├── main.go                  # MyGo entry point and native service bindings
 ├── internal/workspace/
 │   ├── workspace.go         # Projects, file operations, search, and drafts
+│   ├── files.go             # Recursive copying and image imports
 │   ├── git.go               # Branches, remotes, commits, and sync
 │   ├── preview.go           # Markdown / Jekyll preview service
 │   └── *_test.go            # Core behavior tests

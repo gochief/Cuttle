@@ -70,7 +70,7 @@ func status(ctx context.Context, p Project) (Status, error) {
 	if s.Branch == "" {
 		s.Branch = "HEAD (detached)"
 	}
-	raw, err := git(ctx, p.Root, nil, "status", "--porcelain=v1", "-z")
+	raw, err := git(ctx, p.Root, nil, "status", "--porcelain=v1", "-z", "--untracked-files=all")
 	if err != nil {
 		return s, err
 	}
