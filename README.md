@@ -164,13 +164,20 @@ Cuttle/
 │   ├── preview.go           # Markdown / Jekyll 预览服务
 │   └── *_test.go            # 核心行为测试
 ├── src/
-│   ├── main.tsx             # React 桌面界面
-│   ├── style.css            # 界面样式
+│   ├── main.tsx             # React 挂载入口
+│   ├── app/                 # 工作区状态、操作编排与类型
+│   ├── components/          # 项目入口、文件树、编辑器与弹窗
+│   ├── hooks/               # 编辑器语言按需加载
+│   ├── lib/                 # YAML 头信息解析
+│   ├── styles/              # 颜色变量、基础样式、布局与组件样式
+│   ├── style.css            # 样式模块入口
 │   └── mygo.ts              # 自动生成的 TypeScript 绑定
 ├── scripts/mygo.mjs         # MyGo CLI 启动包装
 ├── mygo.config.ts           # 应用名称、标识与构建配置
 └── vite.config.ts           # 前端开发与打包配置
 ```
+
+界面采用深蓝导航、浅灰工作区和青绿色强调色。通用颜色统一维护于 `src/styles/tokens.css`，布局与组件样式分开组织；编辑器在打开文件时按需加载。
 
 ## 数据与操作边界
 

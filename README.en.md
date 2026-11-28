@@ -166,13 +166,20 @@ Cuttle/
 │   ├── preview.go           # Markdown / Jekyll preview service
 │   └── *_test.go            # Core behavior tests
 ├── src/
-│   ├── main.tsx             # React desktop interface
-│   ├── style.css            # Interface styles
+│   ├── main.tsx             # React mounting entry point
+│   ├── app/                 # Workspace state, actions, and types
+│   ├── components/          # Project entry, file tree, editor, and dialogs
+│   ├── hooks/               # On-demand editor language loading
+│   ├── lib/                 # YAML frontmatter parsing
+│   ├── styles/              # Color tokens, base styles, layout, and components
+│   ├── style.css            # Stylesheet entry point
 │   └── mygo.ts              # Generated TypeScript bindings
 ├── scripts/mygo.mjs         # MyGo CLI wrapper
 ├── mygo.config.ts           # App name, identifier, and build settings
 └── vite.config.ts           # Frontend development and build settings
 ```
+
+The interface uses navy navigation, light workspace surfaces, and teal accents. Shared color tokens live in `src/styles/tokens.css`; layout and component styles are split into separate files. The editor loads on demand when a file is opened.
 
 ## Data and operational boundaries
 
